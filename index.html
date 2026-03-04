@@ -1,44 +1,62 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-    <title>SITREP-ONE</title>
+    <meta charset="UTF-8">
+    <title>SITREP-ONE // OPS_CENTER</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { background: #050507; color: #00ff66; font-family: monospace; }
-        #map { height: 80vh; width: 100%; background: #000; border: 1px solid #004411; }
-        .kinetic { animation: pulse 1.5s infinite; background: red; border-radius: 50%; }
+        body { background: #050507; color: #00ff66; font-family: 'JetBrains Mono', monospace; overflow: hidden; height: 100vh; }
+        .border-tactical { border: 1px solid #004411; }
+        #map { height: 100%; background: #000; }
+        .kinetic-marker { animation: pulse 1.5s infinite; background: #ff0000; border: 1px solid white; border-radius: 50%; }
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255,0,0,0.7); } 100% { box-shadow: 0 0 0 10px rgba(255,0,0,0); } }
     </style>
 </head>
-<body class="p-4">
-    <div class="flex justify-between mb-4">
-        <h1>SITREP-ONE // GLOBAL</h1>
-        <a href="france.html" class="bg-blue-900 px-2 py-1 border border-blue-400 text-white text-xs">MODE FRANCE 🇫🇷</a>
+<body class="flex flex-col p-2 gap-2">
+    <header class="flex justify-between items-center p-3 border-b-2 border-green-600 bg-black">
+        <div class="flex items-center gap-2">
+            <span class="text-red-600 animate-ping">●</span>
+            <h1 class="font-bold tracking-tighter text-sm">SITREP-ONE // OPS_CENTER</h1>
+        </div>
+        <a href="france.html" class="bg-blue-900 px-3 py-1 text-[10px] text-white border border-blue-400">UNITE FRANCE 🇫🇷</a>
+    </header>
+
+    <div class="flex flex-grow gap-2 overflow-hidden">
+        <aside class="w-1/4 border-tactical bg-black/50 p-2 flex flex-col">
+            <h2 class="text-[10px] text-red-500 font-bold mb-2">LIVE_ALERTS (24H)</h2>
+            <div id="feed" class="flex-grow overflow-y-auto space-y-2"></div>
+        </aside>
+        <main class="flex-grow border-tactical relative">
+            <div id="map"></div>
+        </main>
     </div>
-    <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const map = L.map('map', { zoomControl: false }).setView([25, 45], 4);
+        const map = L.map('map', {zoomControl: false, attributionControl: false}).setView([25, 45], 4);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-        async function load() {
-            const res = await fetch('data.json');
+        async function refresh() {
+            const res = await fetch('data.json?u=' + Date.now());
             const data = await res.json();
-            
-            // Bases (Triangles bleus)
-            data.bases.forEach(b => {
-                L.marker([b.lat, b.lng], { icon: L.divIcon({html:'<b style="color:#00f2ff">▲</b>', className:''}) })
-                 .addTo(map).bindTooltip(b.name);
+            const feed = document.getElementById('feed');
+            feed.innerHTML = '';
+            map.eachLayer(l => { if(l instanceof L.CircleMarker || l instanceof L.Marker) map.removeLayer(l); });
+
+            data.recent.forEach(ev => {
+                feed.innerHTML += `<div class="p-2 bg-red-900/10 border-l-2 border-red-600 text-[10px]">
+                    <span class="text-red-500 font-bold">${ev.time} UTC</span><br>IMPACT DÉTECTÉ
+                </div>`;
+                L.circleMarker([ev.lat, ev.lng], {radius: 6, className: 'kinetic-marker'}).addTo(map);
             });
 
-            // NASA (Cercles rouges)
-            data.recent.forEach(r => {
-                L.circleMarker([r.lat, r.lng], { radius: 6, className: 'kinetic', color: 'red' }).addTo(map);
+            data.navy.forEach(n => {
+                L.marker([n.lat, n.lng], {icon: L.divIcon({html:'🚢', className:'text-xl'})})
+                 .addTo(map).bindTooltip(n.name);
             });
         }
-        load();
+        refresh(); setInterval(refresh, 60000);
     </script>
 </body>
 </html>
