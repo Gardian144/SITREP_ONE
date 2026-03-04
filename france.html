@@ -1,65 +1,58 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EMA // FORCE DE PROJECTION</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=JetBrains+Mono&display=swap');
-        body { background: #000814; color: #93c5fd; font-family: 'JetBrains Mono'; margin: 0; height: 100vh; }
-        .ui-blue { background: rgba(0, 20, 50, 0.9); border: 1px solid #1e3a8a; backdrop-filter: blur(10px); }
-        #map { height: 100%; width: 100%; background: #000 !important; }
-        .ship-marker { animation: pulse-blue 2s infinite; background: #fff; border: 2px solid #0055a4; border-radius: 50%; }
-        @keyframes pulse-blue { 0% { box-shadow: 0 0 0 0 rgba(0, 85, 164, 0.7); } 100% { box-shadow: 0 0 0 20px rgba(0, 85, 164, 0); } }
+        body { background: #010409; color: #93c5fd; font-family: monospace; height: 100vh; display: flex; flex-direction: column; }
+        #map { flex-grow: 1; background: #000 !important; }
+        .panel-b { border: 1px solid #1e3a8a; background: #020617; }
+        .ship-dot { background: #fff; border: 2px solid #0055a4; border-radius: 50%; box-shadow: 0 0 15px #0055a4; }
     </style>
 </head>
-<body class="flex flex-col p-1 gap-1">
-    <header class="p-2 ui-blue flex justify-between items-center">
-        <h1 style="font-family: 'Orbitron'" class="text-[9px] md:text-xs tracking-widest uppercase">EMA // DISPOSITIF NATIONAL</h1>
-        <a href="index.html" class="text-[8px] bg-blue-600 px-3 py-1 text-white uppercase font-bold">Retour QG</a>
+<body class="p-2 gap-2">
+    <header class="panel-b p-3 flex justify-between items-center border-b-2 border-blue-600">
+        <h1 class="text-xs font-bold uppercase tracking-widest text-white">EMA // DISPOSITIF NATIONAL</h1>
+        <a href="index.html" class="bg-slate-800 text-[10px] px-3 py-1 border border-blue-500">RETOUR QG</a>
     </header>
 
-    <main class="flex flex-col md:flex-row flex-grow gap-1 overflow-hidden">
-        <div class="h-1/3 md:h-full md:w-1/3 ui-blue p-2 overflow-y-auto">
-            <h2 class="text-[10px] font-bold text-blue-400 mb-2 border-b border-blue-900">Moyens Engagés</h2>
-            <div id="ship-list" class="space-y-2"></div>
-        </div>
-        
-        <div class="flex-grow ui-blue relative">
-            <div id="map"></div>
-        </div>
-    </main>
+    <div class="flex flex-grow gap-2 overflow-hidden flex-col md:row">
+        <aside class="md:w-1/3 flex flex-col gap-2">
+            <div class="panel-b p-4 flex-grow overflow-y-auto">
+                <h2 class="text-[10px] text-blue-400 font-bold mb-4 uppercase">Groupe Aéronaval & Forces</h2>
+                <div id="list" class="space-y-4"></div>
+            </div>
+            <div class="panel-b p-3 text-[9px] text-blue-300">
+                <b class="text-white">NOTE STRATÉGIQUE</b><br>
+                Surveillance accrue zone MEDOR et Mer Rouge.
+            </div>
+        </aside>
+        <div id="map" class="panel-b"></div>
+    </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const map = L.map('map', {zoomControl: false, attributionControl: false}).setView([30, 20], 3);
+        const map = L.map('map', {zoomControl: false, attributionControl: false}).setView([30, 25], 3);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-        async function update() {
-            const res = await fetch('data.json?v=' + Date.now());
-            const data = await res.json();
-            const list = document.getElementById('ship-list');
-            list.innerHTML = '';
-            
-            map.eachLayer(l => { if(l instanceof L.CircleMarker || l instanceof L.Marker) map.removeLayer(l); });
+        async function up() {
+            const r = await fetch('data.json?v=' + Date.now());
+            const d = await r.json();
+            const l = document.getElementById('list'); l.innerHTML = '';
+            map.eachLayer(m => { if(m instanceof L.CircleMarker) map.removeLayer(m); });
 
-            data.navy.forEach(s => {
-                const isCDG = s.name.includes("Charles");
-                list.innerHTML += `
-                    <div class="p-2 bg-blue-900/10 border-l-2 border-blue-500">
-                        <div class="flex justify-between text-[10px] font-bold text-white">
-                            <span>${s.name}</span>
-                            <span class="text-[7px] bg-blue-600 px-1 uppercase">${s.status}</span>
-                        </div>
-                    </div>`;
-                
-                L.circleMarker([s.lat, s.lng], {radius: isCDG ? 10 : 7, className: 'ship-marker'}).addTo(map)
-                 .bindTooltip(s.name, {permanent: true, direction: 'top', className: 'bg-transparent border-0 text-white text-[8px]'});
+            d.units.forEach(u => {
+                l.innerHTML += `<div class="p-3 bg-blue-900/10 border-l-2 border-blue-500">
+                    <div class="flex justify-between font-bold text-white text-[11px]">
+                        <span>${u.n}</span> <span class="text-[8px] bg-blue-700 px-1">${u.s}</span>
+                    </div>
+                    <div class="text-[9px] text-blue-400 mt-1">${u.type}</div>
+                </div>`;
+                L.circleMarker([u.lat, u.lng], {radius: 8, className: 'ship-dot'}).addTo(map).bindTooltip(u.n);
             });
         }
-        update(); setInterval(update, 15000);
+        up();
     </script>
 </body>
 </html>
