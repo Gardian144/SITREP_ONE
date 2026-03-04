@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SITREP-ONE | TACTICAL MONITOR</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=JetBrains+Mono:wght@400;700&display=swap');
+        
+        :root { --neon-green: #00ff66; --neon-red: #ff003c; --hot-orange: #ff6600; }
+
+        body { 
+            background: #0a0a0c; color: var(--neon-green); 
+            font-family: 'JetBrains Mono', monospace; 
+            margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; 
+        }
+
+        .tactical-panel { background: rgba(15, 15, 20, 0.9); border: 1px solid rgba(0, 255, 102, 0.2); }
+
+        /* Grille responsive */
+        #main-grid { display: grid; grid-template-columns: repeat(12, 1fr); flex-grow: 1; gap: 10px; padding: 10px; overflow: hidden; }
+        
+        @media (max-width: 768px) {
+            #main-grid { display: flex; flex-direction: column; overflow-y: auto; }
+            #map-container { height: 50vh; min-height: 300px; }
+            #side-panel { height: 40vh; min-height: 200px; }
+            .header-title { font-size: 0.7rem !important; }
+        }
+
+        #map { height: 100%; width: 100%; background: #050505 !important; }
+
+        /* Marqueurs */
+        .strike-marker { animation: pulse 2s infinite; border-radius: 50%; background: var(--neon-red); border: 1px solid white; }
+        .hotspot-marker { animation: heat 1s infinite alternate; border-radius: 50%; background: var(--hot-orange); border: 2px solid #fff; box-shadow: 0 0 15px var(--hot-orange); }
+        
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 0, 60, 0.7); } 100% { box-shadow: 0 0 0 15px rgba(255, 0, 60, 0); } }
+        @keyframes heat { 0% { transform: scale(1); } 100% { transform: scale(1.3); } }
+
+        .cmd-btn {
+            background: rgba(0, 255, 102, 0.05); border: 1px solid var(--neon-green);
+            color: var(--neon-green); font-size: 9px; padding: 5px 10px;
+            clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0% 30%);
+            cursor: pointer; text-transform: uppercase;
+        }
+
+        @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+        .animate-marquee { display: inline-block; animation: marquee 25s linear infinite; }
+    </style>
+</head>
+<body>
+
+    <div class="bg-red-950/40 text-red-500 text-[9px] py-1 overflow-hidden whitespace-nowrap border-b border-red-900/30">
+        <div class="animate-marquee px-4 uppercase">
+            Flux VIIRS SNPP en direct // Analyse de densité de frappe active // QG SITREP-ONE // Surveillance Israël - Iran - Mer Rouge
+        </div>
+    </div>
+
+    <header class="flex justify-between items-center px-4 py-2 tactical-panel border-b-2 border-green-500/50 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="w-2 h-2 bg-red-600 rounded-full animate-ping"></div>
+            <h1 class="header-title text-xs md:text-sm tracking-[0.3em] font-bold font-[Orbitron]">SITREP-ONE</h1>
+        </div>
+        <div class="flex gap-4 items-center">
+            <span id="threat-count" class="text-lg font-bold text-red-500 font-mono">00</span>
+            <a href="france.html" class="cmd-btn border-blue-500 text-blue-400">FRANCE 🇫🇷</a>
+        </div>
+    </header>
+
+    <main id="main-grid">
+        <aside id="side-panel" class="col-span-3 tactical-panel flex flex-col overflow-hidden">
+            <div class="p-2 bg-green-500/10 border-b border-green-500/20 text-[9px] font-bold uppercase">Intel_Stream</div>
+            <div id="intel-feed" class="p-2 space-y-2 overflow-y-auto flex-grow"></div>
+        </aside>
+
+        <section id="map-container" class="col-span-9 tactical-panel relative overflow-hidden">
+            <div id="map"></div>
+            <div class="absolute top-2 right-2 z-[1001] flex flex-col gap-2">
+                <button onclick="map.setView([31.04, 34.85], 8)" class="cmd-btn">ISRAËL</button>
+                <button onclick="map.setView([32.42, 53.68], 5)" class="cmd-btn">IRAN</button>
+                <button onclick="map.setView([32.0, 45.0], 4)" class="cmd-btn">GLOBAL</button>
+            </div>
+        </section>
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([32.0, 45.0], 4);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+
+        let lastHash = "";
+
+        async function sync() {
+            try {
+                const res = await fetch('data.json?u=' + Date.now());
+                const data = await res.json();
+                const currentHash = JSON.stringify(data);
+                if (currentHash === lastHash) return;
+                lastHash = currentHash;
+
+                document.getElementById('threat-count').innerText = data.length.toString().padStart(2, '0');
+                const feed = document.getElementById('intel-feed');
+                feed.innerHTML = '';
+                
+                map.eachLayer(l => { if(l instanceof L.CircleMarker) map.removeLayer(l); });
+
+                data.reverse().forEach(ev => {
+                    const isHot = ev.title.includes('HOTSPOT');
+                    feed.innerHTML += `
+                        <div class="p-2 border-l-2 ${isHot ? 'border-orange-500 bg-orange-500/10' : 'border-red-500 bg-red-500/5'} text-[10px]">
+                            <div class="flex justify-between font-bold text-[8px] mb-1">
+                                <span class="text-red-500">${ev.time} UTC</span>
+                                <span class="text-zinc-500">${isHot ? 'INTENSE' : 'KINETIC'}</span>
+                            </div>
+                            <div class="text-white font-bold uppercase">${ev.title}</div>
+                        </div>`;
+
+                    L.circleMarker([ev.lat, ev.lng], {
+                        radius: isHot ? 9 : 6,
+                        className: isHot ? 'hotspot-marker' : 'strike-marker',
+                        interactive: false
+                    }).addTo(map);
+                });
+            } catch (e) { console.log("Satellite link standby..."); }
+        }
+
+        setInterval(sync, 15000);
+        sync();
+    </script>
+</body>
+</html>
