@@ -12,18 +12,16 @@ def fetch_nasa():
         lines = r.text.strip().split('\n')
         events = []
         if len(lines) > 1:
-            for line in lines[1:30]: # On limite à 30 alertes
+            for line in lines[1:40]:
                 cols = line.split(',')
                 events.append({"lat": float(cols[0]), "lng": float(cols[1]), "time": cols[6]})
         return events
     except: return []
 
 def get_navy():
-    # Simulation trajet Charles de Gaulle vers Mer Rouge
     target = datetime(2026, 3, 14)
     diff = (target - datetime.now()).days
     prog = max(0, min(1, (10 - diff) / 10))
-    # Depart Manche (50N, -2W) -> Arrivée Suez (30N, 32E)
     lat = 50.0 - (prog * 20.0)
     lng = -2.0 + (prog * 34.0)
     return [
@@ -32,13 +30,13 @@ def get_navy():
     ]
 
 data = {
-    "last_update": datetime.now().strftime("%H:%M"),
+    "last_update": datetime.now().strftime("%H:%M:%S"),
     "recent": fetch_nasa(),
     "navy": get_navy(),
     "bases": [
-        {"name": "BAP Jordanie (Rafale)", "lat": 32.15, "lng": 36.10, "info": "6x Rafale déployés"},
-        {"name": "FFDJ Djibouti", "lat": 11.58, "lng": 43.14, "info": "Base stratégique"},
-        {"name": "Base Navale Abu Dhabi", "lat": 24.48, "lng": 54.32, "info": "Présence permanente"}
+        {"name": "BAP Jordanie (Rafale)", "lat": 32.15, "lng": 36.10, "info": "6x Rafale"},
+        {"name": "FFDJ Djibouti", "lat": 11.58, "lng": 43.14, "info": "Base Mer Rouge"},
+        {"name": "Base Navale Abu Dhabi", "lat": 24.48, "lng": 54.32, "info": "Forces EAU"}
     ]
 }
 
