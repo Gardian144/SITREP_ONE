@@ -1,20 +1,20 @@
-[
-  {
-    "id": 1,
-    "time": "20:45",
-    "lat": 35.6892,
-    "lng": 51.3890,
-    "title": "ALERTE TÉHÉRAN",
-    "desc": "Interception de drone au-dessus du QG des Gardiens.",
-    "type": "STRIKE"
-  },
-  {
-    "id": 2,
-    "time": "19:12",
-    "lat": 27.1833,
-    "lng": 56.2667,
-    "title": "MOUVEMENT NAVAL",
-    "desc": "Trois navires de classe Alvand quittent Bandar Abbas.",
-    "type": "NAVY"
-  }
-]
+{
+  "last_update": "22:01",
+  "recent": [],
+  "navy": [
+    {
+      "name": "Charles de Gaulle (R91)",
+      "lat": 52.95,
+      "lng": 7.75,
+      "type": "Porte-avions",
+      "status": "TRANSIT (EN ROUTE)"
+    },
+    {
+      "name": "FREMM Alsace",
+      "lat": 14.2,
+      "lng": 42.8,
+      "type": "Frégate (Escorte)",
+      "status": "DÉPLOYÉ"
+    }
+  ]
+}
