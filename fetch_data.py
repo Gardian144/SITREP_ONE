@@ -1,7 +1,8 @@
 import requests
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 
+# Configuration NASA
 EXTENT = "30,10,65,45" 
 MAP_KEY = "3a967f64858b76c839f9b5a805a50785" 
 
@@ -23,13 +24,12 @@ def fetch_nasa_alerts():
         for line in lines[1:51]: 
             cols = line.split(',')
             lat, lon = float(cols[0]), float(cols[1])
-            # Calcul de densité pour les Hotspots
+            # Calcul de densité pour les Hotspots (proximité de 0.3 degrés)
             nearby = sum(1 for l in lines[1:51] if abs(float(l.split(',')[0]) - lat) < 0.3)
             
             events.append({
                 "id": cols[5],
                 "time": f"{cols[6][:2]}:{cols[6][2:]}",
-                "date": cols[5], # Date brute NASA
                 "lat": lat,
                 "lng": lon,
                 "title": get_location_label(lat, lon),
@@ -38,22 +38,34 @@ def fetch_nasa_alerts():
         return events
     except: return []
 
-# Simulation de positions de navires militaires (Positions connues/publiques)
-def get_navy():
+# Calcul de la position du Charles de Gaulle selon la date
+def get_navy_dynamic():
+    target_date = datetime(2026, 3, 14) # Date d'arrivée estimée
+    today = datetime.now()
+    
+    # S'il reste du temps avant le 14 mars, on simule la descente
+    diff_days = (target_date - today).days
+    if diff_days <= 0:
+        cdg_lat, cdg_lng, status = 34.5, 32.5, "DÉPLOYÉ (CHYPRE)"
+    else:
+        # Il part de 55N (Nord) et descend vers 34.5N
+        progression = max(0, min(1, (10 - diff_days) / 10))
+        cdg_lat = 55.0 - (progression * 20.5)
+        cdg_lng = 5.0 + (progression * 27.5)
+        status = "TRANSIT (EN ROUTE)"
+
     return [
-        {"name": "Charles de Gaulle (R91)", "lat": 34.5, "lng": 20.2, "type": "Porte-avions"},
-        {"name": "FREMM Alsace", "lat": 14.2, "lng": 42.8, "type": "Frégate"}
+        {"name": "Charles de Gaulle (R91)", "lat": cdg_lat, "lng": cdg_lng, "type": "Porte-avions", "status": status},
+        {"name": "FREMM Alsace", "lat": 14.2, "lng": 42.8, "type": "Frégate (Escorte)", "status": "DÉPLOYÉ"}
     ]
 
-alerts = fetch_nasa_alerts()
-navy = get_navy()
-
-# Export structuré
+# Génération du fichier final
 output = {
     "last_update": datetime.now().strftime("%H:%M"),
-    "recent": alerts, # Dernières 24h
-    "navy": navy
+    "recent": fetch_nasa_alerts(),
+    "navy": get_navy_dynamic()
 }
 
 with open('data.json', 'w', encoding='utf-8') as f:
     json.dump(output, f, indent=2, ensure_ascii=False)
+print(f"Update terminée à {output['last_update']}")
