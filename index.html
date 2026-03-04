@@ -2,61 +2,74 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>SITREP-ONE // OPS_CENTER</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SITREP-ONE // COMMAND</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { background: #050507; color: #00ff66; font-family: 'JetBrains Mono', monospace; overflow: hidden; height: 100vh; }
-        .border-tactical { border: 1px solid #004411; }
-        #map { height: 100%; background: #000; }
-        .kinetic-marker { animation: pulse 1.5s infinite; background: #ff0000; border: 1px solid white; border-radius: 50%; }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255,0,0,0.7); } 100% { box-shadow: 0 0 0 10px rgba(255,0,0,0); } }
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=JetBrains+Mono&display=swap');
+        body { background: #000; color: #00ff66; font-family: 'JetBrains Mono'; margin: 0; height: 100vh; overflow: hidden; }
+        #map { height: 100%; width: 100%; filter: brightness(0.7) contrast(1.2); }
+        
+        /* Effet de Scan Radar */
+        .radar-line { position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: rgba(0, 255, 102, 0.2); box-shadow: 0 0 15px #00ff66; z-index: 1000; pointer-events: none; animation: scan 4s linear infinite; }
+        @keyframes scan { from { top: 0%; } to { top: 100%; } }
+
+        .kinetic { animation: pulse 1s infinite alternate; background: #ff003c; border-radius: 50%; box-shadow: 0 0 10px #ff003c; }
+        @keyframes pulse { from { opacity: 0.4; transform: scale(0.8); } to { opacity: 1; transform: scale(1.2); } }
+        
+        .ui-panel { background: rgba(0, 10, 0, 0.85); border: 1px solid #004411; backdrop-filter: blur(5px); }
     </style>
 </head>
-<body class="flex flex-col p-2 gap-2">
-    <header class="flex justify-between items-center p-3 border-b-2 border-green-600 bg-black">
+<body class="flex flex-col">
+    <div class="radar-line"></div>
+    
+    <header class="p-2 ui-panel flex justify-between items-center z-[1001]">
         <div class="flex items-center gap-2">
-            <span class="text-red-600 animate-ping">●</span>
-            <h1 class="font-bold tracking-tighter text-sm">SITREP-ONE // OPS_CENTER</h1>
+            <div class="w-2 h-2 bg-red-600 rounded-full animate-ping"></div>
+            <h1 style="font-family: 'Orbitron'" class="text-[10px] md:text-xs">SITREP // GLOBAL_OPS</h1>
         </div>
-        <a href="france.html" class="bg-blue-900 px-3 py-1 text-[10px] text-white border border-blue-400">UNITE FRANCE 🇫🇷</a>
+        <div class="flex gap-2">
+            <span id="clock" class="text-[9px] border border-green-900 px-2 py-1">00:00:00</span>
+            <a href="france.html" class="bg-blue-900 text-white text-[9px] px-2 py-1 font-bold">FRANCE 🇫🇷</a>
+        </div>
     </header>
 
-    <div class="flex flex-grow gap-2 overflow-hidden">
-        <aside class="w-1/4 border-tactical bg-black/50 p-2 flex flex-col">
-            <h2 class="text-[10px] text-red-500 font-bold mb-2">LIVE_ALERTS (24H)</h2>
-            <div id="feed" class="flex-grow overflow-y-auto space-y-2"></div>
-        </aside>
-        <main class="flex-grow border-tactical relative">
-            <div id="map"></div>
-        </main>
-    </div>
+    <main class="relative flex-grow">
+        <div id="map"></div>
+        <div class="absolute bottom-4 left-4 z-[1000] ui-panel p-2 w-48 hidden md:block">
+            <h2 class="text-[9px] font-bold border-b border-green-900 mb-1">INTEL_STREAM</h2>
+            <div id="mini-feed" class="text-[8px] space-y-1 max-h-32 overflow-hidden"></div>
+        </div>
+    </main>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const map = L.map('map', {zoomControl: false, attributionControl: false}).setView([25, 45], 4);
+        const map = L.map('map', {zoomControl: false, attributionControl: false}).setView([28, 40], 4);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-        async function refresh() {
-            const res = await fetch('data.json?u=' + Date.now());
-            const data = await res.json();
-            const feed = document.getElementById('feed');
-            feed.innerHTML = '';
-            map.eachLayer(l => { if(l instanceof L.CircleMarker || l instanceof L.Marker) map.removeLayer(l); });
+        async function sync() {
+            try {
+                // Le "?v=" + Date.now() force l'actualisation sur ton téléphone
+                const res = await fetch('data.json?v=' + Date.now());
+                const data = await res.json();
+                
+                map.eachLayer(l => { if(l instanceof L.CircleMarker || l instanceof L.Marker) map.removeLayer(l); });
 
-            data.recent.forEach(ev => {
-                feed.innerHTML += `<div class="p-2 bg-red-900/10 border-l-2 border-red-600 text-[10px]">
-                    <span class="text-red-500 font-bold">${ev.time} UTC</span><br>IMPACT DÉTECTÉ
-                </div>`;
-                L.circleMarker([ev.lat, ev.lng], {radius: 6, className: 'kinetic-marker'}).addTo(map);
-            });
+                data.recent.forEach(ev => {
+                    L.circleMarker([ev.lat, ev.lng], {radius: 6, className: 'kinetic', stroke: false}).addTo(map);
+                });
 
-            data.navy.forEach(n => {
-                L.marker([n.lat, n.lng], {icon: L.divIcon({html:'🚢', className:'text-xl'})})
-                 .addTo(map).bindTooltip(n.name);
-            });
+                data.navy.forEach(n => {
+                    L.marker([n.lat, n.lng], {icon: L.divIcon({html: '🚢', className: 'text-xl'})}).addTo(map);
+                });
+
+                document.getElementById('clock').innerText = "SYNC: " + data.last_update;
+            } catch(e) { console.log("Reconnecting..."); }
         }
-        refresh(); setInterval(refresh, 60000);
+
+        setInterval(sync, 10000); 
+        sync();
     </script>
 </body>
 </html>
