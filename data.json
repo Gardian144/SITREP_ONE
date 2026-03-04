@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "time": "20:45",
+    "lat": 35.6892,
+    "lng": 51.3890,
+    "title": "ALERTE TÉHÉRAN",
+    "desc": "Interception de drone au-dessus du QG des Gardiens.",
+    "type": "STRIKE"
+  },
+  {
+    "id": 2,
+    "time": "19:12",
+    "lat": 27.1833,
+    "lng": 56.2667,
+    "title": "MOUVEMENT NAVAL",
+    "desc": "Trois navires de classe Alvand quittent Bandar Abbas.",
+    "type": "NAVY"
+  }
+]
