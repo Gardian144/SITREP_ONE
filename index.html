@@ -2,74 +2,88 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SITREP-ONE // COMMAND</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>SITREP-ONE // GLOBAL</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=JetBrains+Mono&display=swap');
-        body { background: #000; color: #00ff66; font-family: 'JetBrains Mono'; margin: 0; height: 100vh; overflow: hidden; }
-        #map { height: 100%; width: 100%; filter: brightness(0.7) contrast(1.2); }
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=JetBrains+Mono&display=swap');
+        body { background: #000; color: #00ff66; font-family: 'JetBrains Mono', monospace; margin: 0; height: 100vh; overflow: hidden; }
+        #map { height: 100%; width: 100%; filter: brightness(0.6) contrast(1.3) saturate(0.5); }
         
-        /* Effet de Scan Radar */
-        .radar-line { position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: rgba(0, 255, 102, 0.2); box-shadow: 0 0 15px #00ff66; z-index: 1000; pointer-events: none; animation: scan 4s linear infinite; }
-        @keyframes scan { from { top: 0%; } to { top: 100%; } }
+        /* Scanline Animée */
+        .scanline { position: absolute; width: 100%; height: 10px; background: rgba(0, 255, 102, 0.1); 
+                      box-shadow: 0 0 20px #00ff66; z-index: 999; animation: scan 6s linear infinite; pointer-events: none; }
+        @keyframes scan { from { top: -10%; } to { top: 110%; } }
 
-        .kinetic { animation: pulse 1s infinite alternate; background: #ff003c; border-radius: 50%; box-shadow: 0 0 10px #ff003c; }
-        @keyframes pulse { from { opacity: 0.4; transform: scale(0.8); } to { opacity: 1; transform: scale(1.2); } }
-        
-        .ui-panel { background: rgba(0, 10, 0, 0.85); border: 1px solid #004411; backdrop-filter: blur(5px); }
+        .kinetic-blob { animation: pulse-red 1s infinite alternate; background: #ff0000; border-radius: 50%; box-shadow: 0 0 15px #ff0000; }
+        @keyframes pulse-red { from { opacity: 0.5; transform: scale(0.8); } to { opacity: 1; transform: scale(1.3); } }
+
+        .ui-glass { background: rgba(0, 15, 0, 0.85); border: 1px solid #00ff66; backdrop-filter: blur(8px); }
     </style>
 </head>
 <body class="flex flex-col">
-    <div class="radar-line"></div>
-    
-    <header class="p-2 ui-panel flex justify-between items-center z-[1001]">
-        <div class="flex items-center gap-2">
-            <div class="w-2 h-2 bg-red-600 rounded-full animate-ping"></div>
-            <h1 style="font-family: 'Orbitron'" class="text-[10px] md:text-xs">SITREP // GLOBAL_OPS</h1>
+    <div class="scanline"></div>
+
+    <header class="p-3 ui-glass flex justify-between items-center z-[1000] border-t-0 border-x-0">
+        <div class="flex items-center gap-3">
+            <span class="w-3 h-3 bg-red-600 rounded-full animate-ping"></span>
+            <h1 style="font-family: 'Orbitron'" class="text-xs md:text-sm tracking-widest text-white">SITREP-ONE // SYSTEM_ACTIVE</h1>
         </div>
-        <div class="flex gap-2">
-            <span id="clock" class="text-[9px] border border-green-900 px-2 py-1">00:00:00</span>
-            <a href="france.html" class="bg-blue-900 text-white text-[9px] px-2 py-1 font-bold">FRANCE 🇫🇷</a>
+        <div class="flex items-center gap-4">
+            <span id="sync" class="text-[9px] text-zinc-400">SYNC_PENDING...</span>
+            <a href="france.html" class="bg-blue-600 hover:bg-blue-500 text-white text-[10px] px-3 py-1 font-bold rounded">UNITÉ FRANCE</a>
         </div>
     </header>
 
-    <main class="relative flex-grow">
+    <div class="flex-grow relative flex overflow-hidden">
+        <aside class="hidden md:flex w-72 ui-glass flex-col p-4 z-[1000] border-y-0 border-l-0">
+            <h2 class="text-red-500 font-bold text-xs mb-4">INTEL_STREAM (24H)</h2>
+            <div id="intel-feed" class="space-y-3 overflow-y-auto pr-2 text-[10px]"></div>
+        </aside>
+
         <div id="map"></div>
-        <div class="absolute bottom-4 left-4 z-[1000] ui-panel p-2 w-48 hidden md:block">
-            <h2 class="text-[9px] font-bold border-b border-green-900 mb-1">INTEL_STREAM</h2>
-            <div id="mini-feed" class="text-[8px] space-y-1 max-h-32 overflow-hidden"></div>
-        </div>
-    </main>
+    </div>
+
+    <audio id="ping" src="https://www.soundjay.com/buttons/sounds/button-20.mp3"></audio>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const map = L.map('map', {zoomControl: false, attributionControl: false}).setView([28, 40], 4);
+        const map = L.map('map', {zoomControl: false, attributionControl: false}).setView([25, 40], 4);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-        async function sync() {
+        async function update() {
             try {
-                // Le "?v=" + Date.now() force l'actualisation sur ton téléphone
                 const res = await fetch('data.json?v=' + Date.now());
                 const data = await res.json();
                 
+                document.getElementById('sync').innerText = "LAST_SYNC: " + data.last_update;
+                const feed = document.getElementById('intel-feed');
+                feed.innerHTML = '';
+
                 map.eachLayer(l => { if(l instanceof L.CircleMarker || l instanceof L.Marker) map.removeLayer(l); });
 
                 data.recent.forEach(ev => {
-                    L.circleMarker([ev.lat, ev.lng], {radius: 6, className: 'kinetic', stroke: false}).addTo(map);
+                    feed.innerHTML += `<div class="p-2 border-l-2 border-red-600 bg-red-900/10 mb-2">
+                        <span class="text-red-500 font-bold">${ev.time} UTC</span><br>IMPACT_KINETIC DÉTECTÉ
+                    </div>`;
+                    L.circleMarker([ev.lat, ev.lng], {radius: 6, className: 'kinetic-blob', stroke: false}).addTo(map);
                 });
 
                 data.navy.forEach(n => {
-                    L.marker([n.lat, n.lng], {icon: L.divIcon({html: '🚢', className: 'text-xl'})}).addTo(map);
+                    const icon = L.divIcon({ html: '🚢', className: 'text-xl' });
+                    L.marker([n.lat, n.lng], {icon}).addTo(map).bindTooltip(n.name, {className: 'ui-glass text-white border-0'});
                 });
 
-                document.getElementById('clock').innerText = "SYNC: " + data.last_update;
-            } catch(e) { console.log("Reconnecting..."); }
+                data.bases.forEach(b => {
+                    const icon = L.divIcon({ html: '<span style="color:#00ff66">▲</span>', className: 'font-bold' });
+                    L.marker([b.lat, b.lng], {icon}).addTo(map).bindTooltip(b.name);
+                });
+
+            } catch (e) { document.getElementById('sync').innerText = "CONNECTION_LOST"; }
         }
 
-        setInterval(sync, 10000); 
-        sync();
+        setInterval(update, 15000); update();
     </script>
 </body>
 </html>
