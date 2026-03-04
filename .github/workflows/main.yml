@@ -1,0 +1,27 @@
+name: Update Satellite Feed
+on:
+  schedule:
+    - cron: '*/15 * * * *' # S'exécute toutes les 15 min
+  workflow_dispatch: # Permet de le lancer à la main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - name: Install dependencies
+        run: pip install requests
+      - name: Fetch NASA Data
+        run: python fetch_data.py
+      - name: Commit and push changes
+        run: |
+          git config --global user.name 'SITREP-BOT'
+          git config --global user.email 'bot@sitrep.one'
+          git add data.json
+          git commit -m "Auto-update satellite data" || exit 0
+          git push
