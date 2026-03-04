@@ -1,5 +1,5 @@
 {
-  "last_update": "22:01",
+  "last_update": "22:12",
   "recent": [],
   "navy": [
     {
@@ -7,14 +7,14 @@
       "lat": 52.95,
       "lng": 7.75,
       "type": "Porte-avions",
-      "status": "TRANSIT (EN ROUTE)"
+      "status": "TRANSIT (J-9)"
     },
     {
       "name": "FREMM Alsace",
       "lat": 14.2,
       "lng": 42.8,
-      "type": "Frégate (Escorte)",
-      "status": "DÉPLOYÉ"
+      "type": "Frégate",
+      "status": "MISSION MER ROUGE"
     }
   ]
 }
