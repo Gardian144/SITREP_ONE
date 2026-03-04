@@ -2,62 +2,89 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FRANCE | NAVY TRACKER</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=JetBrains+Mono&display=swap');
-        body { background: #020617; color: #93c5fd; font-family: 'JetBrains Mono', monospace; height: 100vh; display: flex; flex-direction: column; }
-        #map { height: 100%; width: 100%; background: #010409 !important; }
-        .ship-label { background: #0055a4; color: white; border: 1px solid #93c5fd; font-size: 8px; padding: 2px 4px; }
-        .gan-marker { animation: pulse-blue 2s infinite; border-radius: 50%; background: #fff; border: 2px solid #0055a4; }
-        @keyframes pulse-blue { 0% { box-shadow: 0 0 0 0 rgba(0, 85, 164, 0.7); } 100% { box-shadow: 0 0 0 15px rgba(0, 85, 164, 0); } }
+        body { background: #020617; color: #93c5fd; font-family: 'JetBrains Mono'; height: 100vh; display: flex; flex-direction: column; }
+        #map { flex-grow: 1; background: #010409 !important; }
+        .gan-marker { animation: pulse-blue 2s infinite; background: #fff; border: 2px solid #0055a4; border-radius: 50%; }
+        @keyframes pulse-blue { 0% { box-shadow: 0 0 0 0 rgba(0, 85, 164, 0.7); } 100% { box-shadow: 0 0 0 20px rgba(0, 85, 164, 0); } }
+        .panel { background: rgba(15, 23, 42, 0.9); border: 1px solid #1e3a8a; }
     </style>
 </head>
 <body class="p-2 gap-2">
-    <header class="flex justify-between items-center p-3 border-b border-blue-900 bg-slate-900/80">
-        <h1 style="font-family: Orbitron" class="text-xs tracking-tighter">EMA // NAVY_WATCH</h1>
-        <a href="index.html" class="text-[9px] border border-blue-500 px-2 py-1 text-blue-400">RETOUR</a>
+    <header class="p-3 panel flex justify-between items-center">
+        <h1 style="font-family: Orbitron" class="text-sm tracking-widest text-white">FRANCE // FORCE DE PROJECTION</h1>
+        <a href="index.html" class="text-[10px] bg-slate-800 px-3 py-1 border border-blue-500">RETOUR QG</a>
     </header>
 
-    <main class="grid grid-cols-12 gap-2 flex-grow overflow-hidden">
-        <aside class="col-span-12 md:col-span-4 bg-slate-900/50 p-3 border border-blue-900/30 overflow-y-auto">
-            <h2 class="text-[10px] font-bold mb-4 text-blue-400">UNITÉS DÉPLOYÉES</h2>
-            <div id="ship-list" class="space-y-3"></div>
+    <div class="grid grid-cols-12 gap-2 flex-grow overflow-hidden">
+        <aside class="col-span-12 md:col-span-4 panel p-4 overflow-y-auto">
+            <h2 class="text-xs font-bold text-blue-400 mb-4 border-b border-blue-900 pb-2">ORDRE DE BATAILLE</h2>
+            <div id="fr-list" class="space-y-4"></div>
+            
+            <div class="mt-10 p-3 bg-blue-900/20 border-l-4 border-blue-500">
+                <p class="text-[10px] text-white font-bold uppercase">Note de Renseignement</p>
+                <p class="text-[9px] text-blue-300 mt-1">GAN Charles de Gaulle en transit. Escorte FREMM assurée. Vigilance Mer Rouge niveau 4.</p>
+            </div>
         </aside>
-        <section class="col-span-12 md:col-span-8 relative border border-blue-900/30">
+
+        <section class="col-span-12 md:col-span-8 panel relative">
             <div id="map"></div>
         </section>
-    </main>
+    </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([30.0, 20.0], 3);
+        const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([30.0, 25.0], 3);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
         async function update() {
             const res = await fetch('data.json?u=' + Date.now());
             const data = await res.json();
-            const list = document.getElementById('ship-list');
+            const list = document.getElementById('fr-list');
             list.innerHTML = '';
             
-            map.eachLayer(l => { if(l instanceof L.CircleMarker) map.removeLayer(l); });
+            map.eachLayer(l => { if(l instanceof L.Circle || l instanceof L.Marker || l instanceof L.CircleMarker) map.removeLayer(l); });
 
+            // 1. NAVIRES
             data.navy.forEach(ship => {
+                const isCDG = ship.name.includes("Charles");
                 list.innerHTML += `
-                    <div class="p-2 border-l-2 border-blue-500 bg-blue-900/10">
-                        <div class="text-[10px] font-bold text-white">${ship.name}</div>
-                        <div class="text-[8px] text-blue-400">${ship.status}</div>
+                    <div class="p-3 bg-blue-900/10 border-l-2 border-blue-400">
+                        <div class="flex justify-between items-start">
+                            <span class="text-xs font-bold text-white">${ship.name}</span>
+                            <span class="text-[8px] px-1 bg-blue-600 text-white">${ship.status}</span>
+                        </div>
+                        <div class="text-[9px] text-blue-300 mt-1">${ship.type}</div>
                     </div>`;
 
-                L.circleMarker([ship.lat, ship.lng], {
-                    radius: 7, className: 'gan-marker'
-                }).addTo(map).bindTooltip(ship.name, { permanent: true, className: 'ship-label', direction: 'top' });
+                const marker = L.circleMarker([ship.lat, ship.lng], {
+                    radius: isCDG ? 10 : 7, className: isCDG ? 'gan-marker' : ''
+                }).addTo(map).bindTooltip(ship.name, {permanent: true, direction: 'top'});
+
+                if(isCDG) {
+                    // Portée radar/frappe du CdG (500km environ)
+                    L.circle([ship.lat, ship.lng], { radius: 500000, color: '#1e3a8a', weight: 1, fillOpacity: 0.1 }).addTo(map);
+                }
+            });
+
+            // 2. BASES FRANÇAISES
+            data.intel.france.forEach(base => {
+                list.innerHTML += `
+                    <div class="p-3 bg-slate-800/40 border-l-2 border-zinc-500">
+                        <div class="text-xs font-bold text-zinc-300">${base.name}</div>
+                        <div class="text-[9px] text-zinc-500">${base.assets}</div>
+                    </div>`;
+
+                L.marker([base.lat, base.lng], {
+                    icon: L.divIcon({ html: '🇫🇷', className: 'text-lg' })
+                }).addTo(map).bindTooltip(base.name);
             });
         }
-        update();
-        setInterval(update, 30000);
+        update(); setInterval(update, 30000);
     </script>
 </body>
 </html>
