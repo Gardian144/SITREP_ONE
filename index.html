@@ -1,62 +1,44 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>SITREP-ONE | GLOBAL TACTICAL</title>
+    <title>SITREP-ONE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=JetBrains+Mono&display=swap');
-        body { background: #050507; color: #00ff66; font-family: 'JetBrains Mono'; margin: 0; overflow: hidden; }
-        #map { height: 100vh; width: 100vw; background: #000; }
-        .kinetic-marker { animation: pulse-red 1.5s infinite; background: #ff0000; border: 2px solid white; border-radius: 50%; }
-        .base-marker { color: #00f2ff; font-weight: bold; font-size: 14px; text-shadow: 0 0 8px #00f2ff; }
-        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.8); } 100% { box-shadow: 0 0 0 15px rgba(255, 0, 0, 0); } }
-        .header-ui { position: absolute; top: 10px; left: 10px; z-index: 1000; background: rgba(0,0,0,0.8); border: 1px solid #00ff66; padding: 10px; }
+        body { background: #050507; color: #00ff66; font-family: monospace; }
+        #map { height: 80vh; width: 100%; background: #000; border: 1px solid #004411; }
+        .kinetic { animation: pulse 1.5s infinite; background: red; border-radius: 50%; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255,0,0,0.7); } 100% { box-shadow: 0 0 0 10px rgba(255,0,0,0); } }
     </style>
 </head>
-<body>
-    <div class="header-ui">
-        <h1 style="font-family: Orbitron" class="text-xs">SITREP-ONE // GLOBAL_OPS</h1>
-        <div id="stats" class="text-[9px] mt-1 text-zinc-400">SYNCING SATELLITES...</div>
-        <a href="france.html" class="inline-block mt-2 text-[10px] bg-blue-900 px-2 py-1 text-white border border-blue-400">UNITE FRANCE 🇫🇷</a>
+<body class="p-4">
+    <div class="flex justify-between mb-4">
+        <h1>SITREP-ONE // GLOBAL</h1>
+        <a href="france.html" class="bg-blue-900 px-2 py-1 border border-blue-400 text-white text-xs">MODE FRANCE 🇫🇷</a>
     </div>
-
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([25.0, 45.0], 4);
+        const map = L.map('map', { zoomControl: false }).setView([25, 45], 4);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-        async function update() {
-            const res = await fetch('data.json?u=' + Date.now());
+        async function load() {
+            const res = await fetch('data.json');
             const data = await res.json();
-            document.getElementById('stats').innerText = `${data.recent.length} IMPACTS DÉTECTÉS | ${data.last_update}`;
-
-            map.eachLayer(l => { if(l instanceof L.Marker || l instanceof L.CircleMarker) map.removeLayer(l); });
-
-            // BASES MILITAIRES
-            data.intel.bases.forEach(b => {
-                const icon = L.divIcon({ html: `▲`, className: 'base-marker' });
-                L.marker([b.lat, b.lng], {icon: icon}).addTo(map)
-                 .bindTooltip(`<b>${b.name}</b><br>AIR_FORCE: ${b.assets}`);
+            
+            // Bases (Triangles bleus)
+            data.bases.forEach(b => {
+                L.marker([b.lat, b.lng], { icon: L.divIcon({html:'<b style="color:#00f2ff">▲</b>', className:''}) })
+                 .addTo(map).bindTooltip(b.name);
             });
 
-            // IMPACTS / MISSILES (NASA)
-            data.recent.forEach(ev => {
-                L.circleMarker([ev.lat, ev.lng], {
-                    radius: 7, className: 'kinetic-marker'
-                }).addTo(map).bindTooltip(`<b class="text-red-500">KINETIC IMPACT</b><br>${ev.time} UTC`);
-            });
-
-            // NAVIRES
-            data.navy.forEach(n => {
-                const icon = L.divIcon({ html: `🚢`, className: 'text-xl' });
-                L.marker([n.lat, n.lng], {icon: icon}).addTo(map).bindTooltip(`<b>${n.name}</b>`);
+            // NASA (Cercles rouges)
+            data.recent.forEach(r => {
+                L.circleMarker([r.lat, r.lng], { radius: 6, className: 'kinetic', color: 'red' }).addTo(map);
             });
         }
-        setInterval(update, 30000); update();
+        load();
     </script>
 </body>
 </html>
