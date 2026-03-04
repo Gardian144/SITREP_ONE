@@ -2,109 +2,61 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SITREP-ONE | QG OPÉRATIONNEL</title>
+    <title>SITREP-ONE | GLOBAL TACTICAL</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=JetBrains+Mono:wght@400;700&display=swap');
-        body { background: #050507; color: #00ff66; font-family: 'JetBrains Mono', monospace; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        .panel-tactique { background: rgba(10, 10, 15, 0.95); border: 1px solid #004411; }
-        #map { height: 100%; width: 100%; background: #000; }
-        
-        /* Styles des marqueurs */
-        .marker-recent { animation: pulse-red 2s infinite; border-radius: 50%; background: #ff003c; border: 1px solid #fff; }
-        .marker-hotspot { animation: heat 1s infinite alternate; border-radius: 50%; background: #ff6600; border: 2px solid #fff; box-shadow: 0 0 15px #ff6600; }
-        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(255, 0, 60, 0.7); } 100% { box-shadow: 0 0 0 10px rgba(255, 0, 60, 0); } }
-        @keyframes heat { from { transform: scale(1); } to { transform: scale(1.3); } }
-
-        /* Scrollbar style */
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #004411; }
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=JetBrains+Mono&display=swap');
+        body { background: #050507; color: #00ff66; font-family: 'JetBrains Mono'; margin: 0; overflow: hidden; }
+        #map { height: 100vh; width: 100vw; background: #000; }
+        .kinetic-marker { animation: pulse-red 1.5s infinite; background: #ff0000; border: 2px solid white; border-radius: 50%; }
+        .base-marker { color: #00f2ff; font-weight: bold; font-size: 14px; text-shadow: 0 0 8px #00f2ff; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.8); } 100% { box-shadow: 0 0 0 15px rgba(255, 0, 0, 0); } }
+        .header-ui { position: absolute; top: 10px; left: 10px; z-index: 1000; background: rgba(0,0,0,0.8); border: 1px solid #00ff66; padding: 10px; }
     </style>
 </head>
-<body class="p-2 gap-2">
+<body>
+    <div class="header-ui">
+        <h1 style="font-family: Orbitron" class="text-xs">SITREP-ONE // GLOBAL_OPS</h1>
+        <div id="stats" class="text-[9px] mt-1 text-zinc-400">SYNCING SATELLITES...</div>
+        <a href="france.html" class="inline-block mt-2 text-[10px] bg-blue-900 px-2 py-1 text-white border border-blue-400">UNITE FRANCE 🇫🇷</a>
+    </div>
 
-    <header class="flex justify-between items-center p-3 panel-tactique border-b-2 border-green-600 shrink-0">
-        <div class="flex items-center gap-2">
-            <div class="w-2 h-2 bg-red-600 rounded-full animate-ping"></div>
-            <h1 style="font-family: 'Orbitron';" class="text-xs md:text-sm tracking-widest uppercase">SITREP-ONE // OPS_CENTER</h1>
-        </div>
-        <div class="flex items-center gap-4">
-            <div id="update-timer" class="text-[9px] opacity-50 font-mono text-white">SYNCING...</div>
-            <a href="france.html" class="px-3 py-1 border border-blue-500 text-blue-400 text-[10px] font-bold">UNITE FRANCE 🇫🇷</a>
-        </div>
-    </header>
-
-    <main class="grid grid-cols-12 gap-2 flex-grow overflow-hidden">
-        <aside class="col-span-12 md:col-span-3 flex flex-col gap-2 overflow-hidden">
-            <div class="panel-tactique flex-grow flex flex-col overflow-hidden">
-                <div class="p-2 bg-red-900/20 text-red-500 text-[10px] font-bold border-b border-red-900/50">LIVE_ALERTS (24H)</div>
-                <div id="live-feed" class="p-2 space-y-2 overflow-y-auto flex-grow"></div>
-                
-                <div class="p-2 bg-zinc-900/50 text-zinc-500 text-[10px] font-bold border-t border-zinc-800 uppercase">Archives (T-48h)</div>
-                <div id="archive-feed" class="p-2 h-32 overflow-y-auto bg-black/40 text-zinc-600 text-[9px]">
-                    <div class="border-l border-zinc-700 pl-2 mb-2">08:45 | SECTEUR GAZA - Archive stable</div>
-                    <div class="border-l border-zinc-700 pl-2 mb-2">04:20 | LIBAN SUD - Archive stable</div>
-                </div>
-            </div>
-        </aside>
-
-        <section class="col-span-12 md:col-span-9 panel-tactique relative overflow-hidden">
-            <div id="map"></div>
-            <div class="absolute top-4 right-4 z-[1000] flex flex-col gap-2">
-                <button onclick="map.setView([31.04, 34.85], 8)" class="bg-black/80 border border-green-500 text-green-500 p-2 text-[9px] font-bold">ISRAËL</button>
-                <button onclick="map.setView([32.42, 53.68], 5)" class="bg-black/80 border border-green-500 text-green-500 p-2 text-[9px] font-bold">IRAN</button>
-            </div>
-        </section>
-    </main>
+    <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([32.0, 45.0], 4);
+        const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([25.0, 45.0], 4);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-        async function refresh() {
-            try {
-                const res = await fetch('data.json?u=' + Date.now());
-                const data = await res.json();
-                
-                document.getElementById('update-timer').innerText = "LAST_UPDATE: " + data.last_update;
-                const feed = document.getElementById('live-feed');
-                feed.innerHTML = '';
-                
-                // Nettoyage carte
-                map.eachLayer(l => { if(l instanceof L.CircleMarker || l.options.icon) map.removeLayer(l); });
+        async function update() {
+            const res = await fetch('data.json?u=' + Date.now());
+            const data = await res.json();
+            document.getElementById('stats').innerText = `${data.recent.length} IMPACTS DÉTECTÉS | ${data.last_update}`;
 
-                // Affichage Alertes
-                data.recent.forEach(ev => {
-                    feed.innerHTML += `
-                        <div class="p-2 border-l-2 ${ev.is_hotspot ? 'border-orange-500 bg-orange-900/10' : 'border-red-600 bg-red-900/5'}">
-                            <div class="flex justify-between text-[8px] font-bold ${ev.is_hotspot ? 'text-orange-400' : 'text-red-400'}">
-                                <span>${ev.time} UTC</span>
-                                <span>${ev.is_hotspot ? 'CRITICAL' : 'KINETIC'}</span>
-                            </div>
-                            <div class="text-[10px] text-white font-bold">${ev.title}</div>
-                        </div>`;
+            map.eachLayer(l => { if(l instanceof L.Marker || l instanceof L.CircleMarker) map.removeLayer(l); });
 
-                    L.circleMarker([ev.lat, ev.lng], {
-                        radius: ev.is_hotspot ? 9 : 6,
-                        className: ev.is_hotspot ? 'marker-hotspot' : 'marker-recent'
-                    }).addTo(map);
-                });
+            // BASES MILITAIRES
+            data.intel.bases.forEach(b => {
+                const icon = L.divIcon({ html: `▲`, className: 'base-marker' });
+                L.marker([b.lat, b.lng], {icon: icon}).addTo(map)
+                 .bindTooltip(`<b>${b.name}</b><br>AIR_FORCE: ${b.assets}`);
+            });
 
-                // Affichage Navires
-                data.navy.forEach(n => {
-                    const icon = L.divIcon({ html: `<div class="text-lg">🚢</div>`, className: 'navy-icon' });
-                    L.marker([n.lat, n.lng], {icon: icon}).addTo(map)
-                     .bindTooltip(`<b class="text-blue-500">${n.name}</b><br><small>${n.type}</small>`, {permanent: false});
-                });
+            // IMPACTS / MISSILES (NASA)
+            data.recent.forEach(ev => {
+                L.circleMarker([ev.lat, ev.lng], {
+                    radius: 7, className: 'kinetic-marker'
+                }).addTo(map).bindTooltip(`<b class="text-red-500">KINETIC IMPACT</b><br>${ev.time} UTC`);
+            });
 
-            } catch(e) { console.warn("Lien perdu..."); }
+            // NAVIRES
+            data.navy.forEach(n => {
+                const icon = L.divIcon({ html: `🚢`, className: 'text-xl' });
+                L.marker([n.lat, n.lng], {icon: icon}).addTo(map).bindTooltip(`<b>${n.name}</b>`);
+            });
         }
-
-        setInterval(refresh, 20000);
-        refresh();
+        setInterval(update, 30000); update();
     </script>
 </body>
 </html>
