@@ -14,18 +14,38 @@ def get_location_label(lat, lon):
     return "ZONE MOYEN-ORIENT"
 
 def fetch_nasa_alerts():
+    # On passe de 1 à 10 pour récupérer les données sur une plage plus large si besoin
+    # Et on utilise MODIS en complément si VIIRS est vide
     url = f"https://firms.modaps.eosdis.nasa.gov/api/area/csv/{MAP_KEY}/VIIRS_SNPP_NRT/{EXTENT}/1"
+    
     try:
         response = requests.get(url, timeout=20)
+        # Si la NASA répond "S3_..." ou une erreur de clé, on intercepte
+        if response.status_code != 200 or "Invalid" in response.text:
+            print("Erreur API NASA : Vérifie ta clé ou le quota")
+            return []
+
         lines = response.text.strip().split('\n')
+        
+        # Si vide, on tente le satellite secondaire (MODIS) qui a souvent plus de données historiques
+        if len(lines) <= 1:
+            url_alt = f"https://firms.modaps.eosdis.nasa.gov/api/area/csv/{MAP_KEY}/MODIS_NRT/{EXTENT}/1"
+            response = requests.get(url_alt, timeout=20)
+            lines = response.text.strip().split('\n')
+
         if len(lines) <= 1: return [] 
 
         events = []
-        for line in lines[1:51]: 
+        # On trie pour avoir les plus récents en premier
+        data_lines = lines[1:100] # On prend jusqu'à 100 points
+        
+        for line in data_lines: 
             cols = line.split(',')
+            if len(cols) < 7: continue
+            
             lat, lon = float(cols[0]), float(cols[1])
-            # Calcul de densité pour les Hotspots (proximité de 0.3 degrés)
-            nearby = sum(1 for l in lines[1:51] if abs(float(l.split(',')[0]) - lat) < 0.3)
+            # Calcul de densité : si beaucoup de points autour, c'est un gros bombardement
+            nearby = sum(1 for l in data_lines if abs(float(l.split(',')[0]) - lat) < 0.2)
             
             events.append({
                 "id": cols[5],
@@ -33,10 +53,12 @@ def fetch_nasa_alerts():
                 "lat": lat,
                 "lng": lon,
                 "title": get_location_label(lat, lon),
-                "is_hotspot": nearby > 3
+                "is_hotspot": nearby > 5 # Plus sensible pour détecter les zones de guerre
             })
         return events
-    except: return []
+    except Exception as e:
+        print(f"Erreur Fetch: {e}")
+        return []
 
 # Calcul de la position du Charles de Gaulle selon la date
 def get_navy_dynamic():
