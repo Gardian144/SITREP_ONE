@@ -1,32 +1,39 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { background: #000; color: #00ff66; font-family: monospace; height: 100vh; display: flex; flex-direction: column; }
-        #map { flex-grow: 1; background: #000 !important; }
-        .panel { border: 1px solid #004411; background: rgba(0,0,0,0.8); }
-        .marker-red { background: red; border-radius: 50%; box-shadow: 0 0 10px red; animation: p 1s infinite alternate; }
-        @keyframes p { from { opacity: 0.4; } to { opacity: 1; } }
+        body { background: #000; color: #00ff66; font-family: 'JetBrains Mono', monospace; }
+        .header-top { border-bottom: 2px solid #00ff66; background: #000; }
+        .sidebar { border-right: 1px solid #004411; background: rgba(5, 5, 5, 0.9); }
+        #map { background: #000 !important; height: calc(100vh - 60px); }
+        .pulse-red { animation: p 1s infinite alternate; background: red; border-radius: 50%; box-shadow: 0 0 12px red; }
+        @keyframes p { from { opacity: 0.3; } to { opacity: 1; } }
     </style>
 </head>
-<body class="p-2 gap-2">
-    <header class="panel p-3 flex justify-between items-center border-t-0 border-x-0 border-b-2 border-green-600">
-        <h1 class="font-bold tracking-widest text-sm">SITREP-ONE // OPS_CENTER</h1>
-        <div class="flex gap-4 items-center">
-            <span id="ut" class="text-[10px]">SYNCING...</span>
-            <a href="france.html" class="bg-blue-900 text-white text-[10px] px-2 py-1">FRANCE 🇫🇷</a>
+<body class="h-screen flex flex-col overflow-hidden">
+    <header class="header-top p-3 flex justify-between items-center z-50">
+        <div class="flex items-center gap-3">
+            <span class="text-red-600 animate-pulse text-xl">●</span>
+            <h1 class="text-sm font-bold tracking-tighter">SITREP-ONE // OPS_CENTER</h1>
+        </div>
+        <div class="flex items-center gap-4">
+            <span id="clock" class="text-[10px] opacity-70">SYNC...</span>
+            <a href="france.html" class="bg-blue-800 text-white text-[10px] px-3 py-1 font-bold border border-blue-400 uppercase">Unité France</a>
         </div>
     </header>
 
-    <div class="flex flex-grow gap-2 overflow-hidden">
-        <aside class="w-64 panel p-3 hidden md:block">
-            <h2 class="text-red-500 text-[10px] font-bold mb-4">LIVE_ALERTS (24H)</h2>
-            <div id="feed" class="text-[9px] space-y-2 overflow-y-auto h-full"></div>
+    <div class="flex flex-1 overflow-hidden">
+        <aside class="sidebar w-80 p-4 flex flex-col gap-4">
+            <h2 class="text-red-500 text-[10px] font-bold border-b border-red-900 pb-1 uppercase">Live_Alerts (24h)</h2>
+            <div id="feed" class="flex-1 overflow-y-auto space-y-3 text-[10px]"></div>
         </aside>
-        <div id="map" class="panel"></div>
+        <main class="flex-1 relative">
+            <div id="map"></div>
+        </main>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -34,19 +41,21 @@
         const map = L.map('map', {zoomControl: false, attributionControl: false}).setView([25, 45], 4);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-        async function up() {
+        async function refresh() {
             const r = await fetch('data.json?v=' + Date.now());
             const d = await r.json();
-            document.getElementById('ut').innerText = "LAST_UPDATE: " + d.last;
-            const f = document.getElementById('feed'); f.innerHTML = '';
+            document.getElementById('clock').innerText = "LAST_SYNC: " + d.update;
+            const feed = document.getElementById('feed'); feed.innerHTML = '';
             map.eachLayer(l => { if(l instanceof L.CircleMarker) map.removeLayer(l); });
 
             d.alerts.forEach(a => {
-                f.innerHTML += `<div class="border-l border-red-600 p-1 mb-2 bg-red-900/10">IMPACT @ ${a.t}</div>`;
-                L.circleMarker([a.lat, a.lng], {radius: 5, color: 'red', className: 'marker-red'}).addTo(map);
+                feed.innerHTML += `<div class="p-2 bg-red-900/10 border-l-2 border-red-600 mb-2">
+                    <b class="text-red-500">${a.t} UTC</b><br>KINETIC IMPACT DETECTED
+                </div>`;
+                L.circleMarker([a.lat, a.lng], {radius: 6, className: 'pulse-red', stroke: false}).addTo(map);
             });
         }
-        up(); setInterval(up, 30000);
+        refresh(); setInterval(refresh, 20000);
     </script>
 </body>
 </html>
