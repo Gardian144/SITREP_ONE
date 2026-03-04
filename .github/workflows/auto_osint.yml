@@ -1,0 +1,31 @@
+name: TACTICAL_SCANNER
+on:
+  schedule:
+    - cron: '*/30 * * * *' # S'exécute automatiquement toutes les 30 minutes
+  workflow_dispatch:      # Permet de cliquer sur le bouton "Run workflow" pour tester
+
+jobs:
+  scanner:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Dependencies
+        run: pip install requests
+
+      - name: Execute NASA Scan
+        run: python fetch_data.py
+
+      - name: Commit and Push Data
+        run: |
+          git config --global user.name 'SITREP-BOT'
+          git config --global user.email 'bot@sitrep-one.com'
+          git add data.json
+          git commit -m "System-Update: New thermal signatures detected" || echo "No changes to commit"
+          git push
